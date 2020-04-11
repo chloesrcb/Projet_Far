@@ -24,7 +24,7 @@ int rcvTCP(int sock,char *msg,int option){
 		res=recv(sock,msg+res,sizeoctets,option);
 		nbTotalSent+=res;
 	}/*stop quand msg entierement envoyé ou res=-1 ou 0 ou 1*/
-
+	
 
 	if(res==-1 || res==0){
 		return res;
@@ -50,7 +50,7 @@ int sendTCP(int sock,char *msg, int sizeoctets,int option){
 		nbTotalSent+=res;
 	}/*stop quand msg entierement envoyé ou res=-1 ou 0 ou 1*/
 	if(nbTotalSent==sizeoctets){
-		return 1;
+		return 1; 
 		/*tout le message a été envoyé*/
 	}
 
@@ -83,12 +83,12 @@ int main(int argc, char *argv[]){
 	printf("Client 2 connecté, La communication peut demarrer...\n");
 
 	int res1;
-	char msg[2000];
+	char msg[200];
 	/*Boucle de communication*/
 	while(1){
 
 		/*On recoit le message du client 1*/
-		res1=rcvTCP(SClient1,msg,0);
+		res1=rcvTCP(SClient1,msg,0);	
 		if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
 			perror("Erreur lors de la reception\n");
 			close(dS);
@@ -96,7 +96,7 @@ int main(int argc, char *argv[]){
 			close(SClient2);
 			exit(0);
 		}
-		else if(res1==0){/*Le client est fermé on arete la communication*/
+		else if(res1==0){/*Le client est fermé on arrete la communication*/
 			printf("Socket fermée\n");
 			close(dS);
 			close(SClient1);
@@ -121,7 +121,7 @@ int main(int argc, char *argv[]){
 			close(SClient2);
 			exit(0);
 		}
-		else if(res1==0){/*Le client est fermé on arete la communication*/
+		else if(res1==0){/*Le client est fermé on arrete la communication*/
 			printf("Socket fermée\n");
 			close(dS);
 			close(SClient1);
@@ -131,7 +131,7 @@ int main(int argc, char *argv[]){
 
 
 		/*On recoit le message du client 2*/
-		res1=rcvTCP(SClient2,msg,0);
+		res1=rcvTCP(SClient2,msg,0);	
 		if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
 			perror("Erreur lors de la reception\n");
 			close(dS);
@@ -139,7 +139,7 @@ int main(int argc, char *argv[]){
 			close(SClient2);
 			exit(0);
 		}
-		else if(res1==0){/*Le client est fermé on arete la communication*/
+		else if(res1==0){/*Le client est fermé on arrete la communication*/
 			printf("Socket fermée\n");
 			close(dS);
 			close(SClient1);
@@ -164,7 +164,7 @@ int main(int argc, char *argv[]){
 			close(SClient2);
 			exit(0);
 		}
-		else if(res1==0){/*Le client est fermé on arete la communication*/
+		else if(res1==0){/*Le client est fermé on arrete la communication*/
 			printf("Socket fermée\n");
 			close(dS);
 			close(SClient1);
@@ -182,5 +182,5 @@ int main(int argc, char *argv[]){
 	close(dS);
 
 	return 0;
-
+	
 }

@@ -11,7 +11,7 @@
 int rcvTCP(int sock,char *msg,int option){
 	/*msg vu ici comme une suite d'octets, un tab d'octets*/
 
-	/* On recoit d'abors la taille de la chaine pour savoir combien d'octets recevoir */
+	/* On recoit d'abord la taille de la chaine pour savoir combien d'octets recevoir */
 	int tailleMessage;
 	int res=recv(sock,&tailleMessage,sizeof(int),option);
 	if(res==-1 || res==0){
@@ -25,7 +25,7 @@ int rcvTCP(int sock,char *msg,int option){
 		res=recv(sock,msg+res,sizeoctets,option);
 		nbTotalSent+=res;
 	}/*stop quand msg entierement envoyé ou res=-1 ou 0 ou 1*/
-
+	
 
 	/*si il y a une erreur res= 0 ou -1*/
 	if(res==-1 || res==0){
@@ -39,7 +39,7 @@ int sendTCP(int sock,char *msg, int sizeoctets,int option){
 	int taille[1];
 	taille[0]=sizeoctets;
 
-	/* On envoi d'abors la taille de la chaine pour prevenir combien d'octets recevoir */
+	/* On envoie d'abord la taille de la chaine pour prevenir combien d'octets recevoir */
 	int res=send(sock,&taille,sizeof(int),option);
 	if(res==-1 || res==0){
 		return res;
@@ -53,7 +53,7 @@ int sendTCP(int sock,char *msg, int sizeoctets,int option){
 		nbTotalSent+=res;
 	}/*stop quand msg entierement envoyé ou res=-1 ou 0 ou 1*/
 	if(nbTotalSent==sizeoctets){
-		return 1;
+		return 1; 
 		/*tout le message a été envoyé*/
 	}
 
@@ -69,7 +69,7 @@ int main(int argc, char const*argv[]){
 	}
 
 
-
+	/* Initialisation de la socket*/
 	int dS=socket(PF_INET,SOCK_STREAM,0);
 	struct sockaddr_in aS;
 	aS.sin_family=AF_INET;
@@ -101,11 +101,11 @@ int main(int argc, char const*argv[]){
 				close(dS);
 				exit(0);
 			}
-
+			
 
 			/*Ecoute*/
 			printf("En attente de message...\n");
-			res1=rcvTCP(dS,msg,0);
+			res1=rcvTCP(dS,msg,0);	
 			if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
 				perror("Erreur lors de la reception\n");
 				close(dS);
@@ -128,12 +128,11 @@ int main(int argc, char const*argv[]){
 
 		}
 	}
-	else{
-		/*Client 2,commence par ecouter*/
+	else{/*Client 2,commence par ecouter*/
 		while(1){
 			/* Ecoute*/
 			printf("En attente de message...\n");
-			res1=rcvTCP(dS,msg,0);
+			res1=rcvTCP(dS,msg,0);	
 			if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
 				perror("Erreur lors de la reception\n");
 				close(dS);
@@ -150,7 +149,7 @@ int main(int argc, char const*argv[]){
 			else if(res1==strlen(msg)+1){
 					printf("Message reçu :\n");
 			}
-
+			
 			printf("%s\n",msg);
 
 
@@ -176,5 +175,5 @@ int main(int argc, char const*argv[]){
 
 	close(dS);
 	return 0;
-
+	
 }
