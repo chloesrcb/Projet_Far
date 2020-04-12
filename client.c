@@ -127,6 +127,7 @@ int main(int argc, char const*argv[]){
 
 
 		}
+		close(dS);
 	}
 	else{/*Client 2,commence par ecouter*/
 		while(strcmp(msg,"fin\n")!=0){
@@ -170,6 +171,7 @@ int main(int argc, char const*argv[]){
 				exit(0);
 			}
 		}
+		close(dS);
 	}
 
 
