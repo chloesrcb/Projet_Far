@@ -85,7 +85,7 @@ int main(int argc, char *argv[]){
 	int res1;
 	char msg[200];
 	/*Boucle de communication*/
-	while(1){
+	while(strcmp(msg,"fin\n")!=0){
 
 		/*On recoit le message du client 1*/
 		res1=rcvTCP(SClient1,msg,0);	
