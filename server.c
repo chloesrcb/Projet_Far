@@ -74,111 +74,119 @@ int main(int argc, char *argv[]){
 	struct sockaddr_in aC;
 	socklen_t lg=sizeof(struct sockaddr_in);
 
-
-	/*Connexion des clients*/
-	printf("En attente du client 1..\n");
-	int SClient1=accept(dS,(struct sockaddr*)&aC,&lg);
-	printf("Client 1 connecté, en attente de client 2...\n");
-	int SClient2=accept(dS,(struct sockaddr*)&aC,&lg);
-	printf("Client 2 connecté, La communication peut demarrer...\n");
-
-	int res1;
-	char msg[200];
-	/*Boucle de communication*/
 	while(1){
+		/*Connexion des clients*/
+		printf("En attente du client 1..\n");
+		int SClient1=accept(dS,(struct sockaddr*)&aC,&lg);
+		printf("Client 1 connecté, en attente de client 2...\n");
+		int SClient2=accept(dS,(struct sockaddr*)&aC,&lg);
+		printf("Client 2 connecté, La communication peut demarrer...\n");
 
-		/*On recoit le message du client 1*/
-		res1=rcvTCP(SClient1,msg,0);	
-		if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
-			perror("Erreur lors de la reception\n");
-			close(dS);
-			close(SClient1);
-			close(SClient2);
-			exit(0);
-		}
-		else if(res1==0){/*Le client est fermé on arrete la communication*/
-			printf("Socket fermée\n");
-			close(dS);
-			close(SClient1);
-			close(SClient2);
-			exit(0);
-		}
-		else if(res1<strlen(msg)+1){
-				printf("Message non reçu entièrement\n");
-		}
-		else if(res1==strlen(msg)+1){
-				printf("Message reçu en entier\n");
-		}
+		int res1;
+		char msg[200];
+		/*Boucle de communication*/
+		while(1){
 
-		printf("message : %s\n",msg);
+			/*On recoit le message du client 1*/
+			res1=rcvTCP(SClient1,msg,0);	
+			if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
+				perror("Erreur lors de la reception\n");
+				close(dS);
+				close(SClient1);
+				close(SClient2);
+				exit(0);
+			}
+			else if(res1==0){/*Le client est fermé on arrete la communication*/
+				printf("Socket fermée\n");
+				close(dS);
+				close(SClient1);
+				close(SClient2);
+				exit(0);
+			}
+			else if(res1<strlen(msg)+1){
+					printf("Message non reçu entièrement\n");
+			}
+			else if(res1==strlen(msg)+1){
+					printf("Message reçu en entier\n");
+			}
 
-		/*On le transmet au client 2*/
-		res1=sendTCP(SClient2,msg,strlen(msg)+1,0);
-		if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
-			perror("Erreur lors de la reception\n");
-			close(dS);
-			close(SClient1);
-			close(SClient2);
-			exit(0);
-		}
-		else if(res1==0){/*Le client est fermé on arrete la communication*/
-			printf("Socket fermée\n");
-			close(dS);
-			close(SClient1);
-			close(SClient2);
-			exit(0);
-		}
+			printf("message : %s\n",msg);
 
-
-		/*On recoit le message du client 2*/
-		res1=rcvTCP(SClient2,msg,0);	
-		if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
-			perror("Erreur lors de la reception\n");
-			close(dS);
-			close(SClient1);
-			close(SClient2);
-			exit(0);
-		}
-		else if(res1==0){/*Le client est fermé on arrete la communication*/
-			printf("Socket fermée\n");
-			close(dS);
-			close(SClient1);
-			close(SClient2);
-			exit(0);
-		}
-		else if(res1<strlen(msg)+1){
-				printf("Message non reçu entièrement\n");
-		}
-		else if(res1==strlen(msg)+1){
-				printf("Message reçu en entier\n");
-		}
-
-		printf("message : %s\n",msg);
-
-		/*On le transmet au client 1*/
-		res1=sendTCP(SClient1,msg,strlen(msg)+1,0);
-		if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
-			perror("Erreur lors de la reception\n");
-			close(dS);
-			close(SClient1);
-			close(SClient2);
-			exit(0);
-		}
-		else if(res1==0){/*Le client est fermé on arrete la communication*/
-			printf("Socket fermée\n");
-			close(dS);
-			close(SClient1);
-			close(SClient2);
-			exit(0);
-		}
+			/*On le transmet au client 2*/
+			res1=sendTCP(SClient2,msg,strlen(msg)+1,0);
+			if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
+				perror("Erreur lors de la reception\n");
+				close(dS);
+				close(SClient1);
+				close(SClient2);
+				exit(0);
+			}
+			else if(res1==0){/*Le client est fermé on arrete la communication*/
+				printf("Socket fermée\n");
+				close(dS);
+				close(SClient1);
+				close(SClient2);
+				exit(0);
+			}
 
 
+			if(strcmp(msg,"fin\n")==0){
+				break;
+			}
+
+			/*On recoit le message du client 2*/
+			res1=rcvTCP(SClient2,msg,0);	
+			if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
+				perror("Erreur lors de la reception\n");
+				close(dS);
+				close(SClient1);
+				close(SClient2);
+				exit(0);
+			}
+			else if(res1==0){/*Le client est fermé on arrete la communication*/
+				printf("Socket fermée\n");
+				close(dS);
+				close(SClient1);
+				close(SClient2);
+				exit(0);
+			}
+			else if(res1<strlen(msg)+1){
+					printf("Message non reçu entièrement\n");
+			}
+			else if(res1==strlen(msg)+1){
+					printf("Message reçu en entier\n");
+			}
+
+			printf("message : %s\n",msg);
+
+			/*On le transmet au client 1*/
+			res1=sendTCP(SClient1,msg,strlen(msg)+1,0);
+			if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
+				perror("Erreur lors de la reception\n");
+				close(dS);
+				close(SClient1);
+				close(SClient2);
+				exit(0);
+			}
+			else if(res1==0){/*Le client est fermé on arrete la communication*/
+				printf("Socket fermée\n");
+				close(dS);
+				close(SClient1);
+				close(SClient2);
+				exit(0);
+			}
+
+			if(strcmp(msg,"fin\n")==0){
+				break;
+			}
 
 
+		}
+
+		close(SClient1);
+		close(SClient2);
+		printf("Arret de la conversation entre ces clients\n");
 	}
-
-	close(SClient1);
-	close(SClient2);
 	close(dS);
 
 	return 0;

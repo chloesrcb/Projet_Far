@@ -101,9 +101,10 @@ int main(int argc, char const*argv[]){
 				close(dS);
 				exit(0);
 			}
+
 			if(strcmp(msg,"fin\n")==0){
-				close(dS);
-				exit(0);
+				printf("Fin de la conversation\n");
+				break;
 			}
 
 			/*Ecoute*/
@@ -128,13 +129,15 @@ int main(int argc, char const*argv[]){
 
 			printf("%s\n",msg);
 
+			if(strcmp(msg,"fin\n")==0){
+				printf("Fin de la conversation\n");
+				break;
+			}
 
 		}
-		close(dS);
-		exit(0);
 	}
 	else{/*Client 2,commence par ecouter*/
-		while(strcmp(msg,"fin\n")!=0){
+		while(1){
 			/* Ecoute*/
 			printf("En attente de message...\n");
 			res1=rcvTCP(dS,msg,0);	
@@ -156,7 +159,11 @@ int main(int argc, char const*argv[]){
 			}
 			
 			printf("%s\n",msg);
-
+			
+			if(strcmp(msg,"fin\n")==0){
+				printf("Fin de la conversation\n");
+				break;
+			}
 
 			/*Envoi*/
 			printf("Saisissez une chaine de caractère\n");
@@ -174,9 +181,11 @@ int main(int argc, char const*argv[]){
 				close(dS);
 				exit(0);
 			}
+			if(strcmp(msg,"fin\n")==0){
+				printf("Fin de la conversation\n");
+				break;
+			}
 		}
-		close(dS);
-		exit(0);
 	}
 
 
