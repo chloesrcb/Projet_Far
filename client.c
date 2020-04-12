@@ -82,7 +82,7 @@ int main(int argc, char const*argv[]){
 	char msg[200];
 
 	if(atoi(argv[3])==1){/*Client 1, commence la discussion*/
-		while(strcmp(msg,"fin\n")!=0){
+		while(1){
 			/*Envoi*/
 			printf("Saisissez une chaine de caractère\n");
 			/*On recupere le message de 200 caracteres max*/
@@ -101,7 +101,10 @@ int main(int argc, char const*argv[]){
 				close(dS);
 				exit(0);
 			}
-			
+			if(strcmp(msg,"fin\n")==0){
+				close(dS);
+				exit(0);
+			}
 
 			/*Ecoute*/
 			printf("En attente de message...\n");
