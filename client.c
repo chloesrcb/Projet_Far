@@ -82,7 +82,7 @@ int main(int argc, char const*argv[]){
 	char msg[200];
 
 	if(atoi(argv[3])==1){/*Client 1, commence la discussion*/
-		while(1){
+		while(strcmp(msg,"fin\n")!=0){
 			/*Envoi*/
 			printf("Saisissez une chaine de caractère\n");
 			/*On recupere le message de 200 caracteres max*/
@@ -129,7 +129,7 @@ int main(int argc, char const*argv[]){
 		}
 	}
 	else{/*Client 2,commence par ecouter*/
-		while(1){
+		while(strcmp(msg,"fin\n")!=0){
 			/* Ecoute*/
 			printf("En attente de message...\n");
 			res1=rcvTCP(dS,msg,0);	
