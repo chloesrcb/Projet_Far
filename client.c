@@ -63,9 +63,40 @@ int sendTCP(int sock,char *msg, int sizeoctets,int option){
 }
 
 
+void *envoiThread(void *param){
+	char msg[200];
+	int res;
+	int socketServer=*(int *)param;
+	while(1){
+		printf("Saisissez une chaine de caractère\n>");
+		/*On recupere le message de 200 caracteres max*/
+		fgets(msg,200,stdin);
+
+		res=sendTCP(socketServer,msg,strlen(msg)+1,0);
+
+
+		if(res==-1){/*Erreur lors de la communication, on l'arrete*/
+			perror("Erreur lors de l'envoi");
+			close(socketServer);
+			exit(0);
+		}
+		else if(res==0){/*Le serveur est fermé on arrete la communication*/
+			printf("Socket fermée");
+			close(socketServer);
+			exit(0);
+		}
+
+		if(strcmp(msg,"fin\n")==0){
+			printf("Fin de la conversation\n");
+			break;
+		}
+	}
+	exit(0);
+}
+
 int main(int argc, char const*argv[]){
-	if (argc!=4){
-		printf("Il faut 3 arguments : IP + numéro de port + 1/2\n");
+	if (argc!=3){
+		printf("Il faut 2 arguments : IP + numéro de port\n");
 		return 0;
 	}
 
@@ -79,114 +110,38 @@ int main(int argc, char const*argv[]){
 	socklen_t lgA=sizeof(struct sockaddr_in);
 	connect(dS,(struct sockaddr *) &aS,lgA);
 
-	int res1=0;
+	pthread_t thread;
+	pthread_create(&thread,NULL,envoiThread,&dS);
+
+	int res1;
 	char msg[200];
 
-	if(atoi(argv[3])==1){/*Client 1, commence la discussion*/
-		while(1){
-			/*Envoi*/
-			printf("Saisissez une chaine de caractère\n");
-			/*On recupere le message de 200 caracteres max*/
-			fgets(msg,200,stdin);
+	while(1){
 
-			res1=sendTCP(dS,msg,strlen(msg)+1,0);
-
-
-			if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
-				perror("Erreur lors de l'envoi");
-				close(dS);
-				exit(0);
-			}
-			else if(res1==0){/*Le serveur est fermé on arrete la communication*/
-				printf("Socket fermée");
-				close(dS);
-				exit(0);
-			}
-
-			if(strcmp(msg,"fin\n")==0){
-				printf("Fin de la conversation\n");
-				break;
-			}
-
-			/*Ecoute*/
-			printf("En attente de message...\n");
-			res1=rcvTCP(dS,msg,0);	
-			if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
-				perror("Erreur lors de la reception\n");
-				close(dS);
-				exit(0);
-			}
-			else if(res1==0){/*Le serveur est fermé on arrete la communication*/
-				printf("Socket fermée\n");
-				close(dS);
-				exit(0);
-			}
-			else if(res1<strlen(msg)+1){
-					printf("Message non reçu entièrement\n");
-			}
-			else if(res1==strlen(msg)+1){
-					printf("Message reçu :\n");
-			}
-
-			printf("%s\n",msg);
-
-			if(strcmp(msg,"fin\n")==0){
-				printf("Fin de la conversation\n");
-				break;
-			}
-
+		/*Ecoute*/
+		printf("En attente de message...\n");
+		res1=rcvTCP(dS,msg,0);	
+		if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
+			perror("Erreur lors de la reception\n");
+			close(dS);
+			exit(0);
 		}
-	}
-	else{/*Client 2,commence par ecouter*/
-		while(1){
-			/* Ecoute*/
-			printf("En attente de message...\n");
-			res1=rcvTCP(dS,msg,0);	
-			if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
-				perror("Erreur lors de la reception\n");
-				close(dS);
-				exit(0);
-			}
-			else if(res1==0){/*Le serveur est fermé on arrete la communication*/
-				printf("Socket fermée\n");
-				close(dS);
-				exit(0);
-			}
-			else if(res1<strlen(msg)+1){
-					printf("Message non reçu entièrement\n");
-			}
-			else if(res1==strlen(msg)+1){
-					printf("Message reçu :\n");
-			}
-			
-			printf("%s\n",msg);
-			
-			if(strcmp(msg,"fin\n")==0){
-				printf("Fin de la conversation\n");
-				break;
-			}
-
-			/*Envoi*/
-			printf("Saisissez une chaine de caractère\n");
-			/*On recupere le message de 200 caracteres max*/
-			fgets(msg,200,stdin);
-
-			res1=sendTCP(dS,msg,strlen(msg)+1,0);
-			if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
-				perror("Erreur lors de l'envoi");
-				close(dS);
-				exit(0);
-			}
-			else if(res1==0){/*Le serveur est fermé on arrete la communication*/
-				printf("Socket fermée");
-				close(dS);
-				exit(0);
-			}
-			if(strcmp(msg,"fin\n")==0){
-				printf("Fin de la conversation\n");
-				break;
-			}
+		else if(res1==0){/*Le serveur est fermé on arrete la communication*/
+			printf("Socket fermée\n");
+			close(dS);
+			exit(0);
 		}
+		else if(res1<strlen(msg)+1){
+				printf("Message non reçu entièrement\n");
+		}
+
+		printf("%s\n>",msg);
+
+		if(strcmp(msg,"fin\n")==0){
+			printf("Fin de la conversation\n");
+			break;
+		}
+
 	}
 
 
