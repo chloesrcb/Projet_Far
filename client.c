@@ -68,7 +68,7 @@ void *envoiThread(void *param){
 	int res;
 	int socketServer=*(int *)param;
 	while(1){
-		printf("Saisissez une chaine de caractère\n>");
+		printf(">");
 		/*On recupere le message de 200 caracteres max*/
 		fgets(msg,200,stdin);
 
@@ -118,8 +118,6 @@ int main(int argc, char const*argv[]){
 
 	while(1){
 
-		/*Ecoute*/
-		printf("En attente de message...\n");
 		res1=rcvTCP(dS,msg,0);	
 		if(res1==-1){/*Erreur lors de la communication, on l'arrete*/
 			perror("Erreur lors de la reception\n");
@@ -135,7 +133,9 @@ int main(int argc, char const*argv[]){
 				printf("Message non reçu entièrement\n");
 		}
 
-		printf("%s\n>",msg);
+		printf("%s",msg);
+		printf(">");
+		fflush(stdout);
 
 		if(strcmp(msg,"fin\n")==0){
 			printf("Fin de la conversation\n");
