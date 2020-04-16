@@ -6,9 +6,9 @@ clean:
 	rm client
 
 server: server.c
-	gcc -Wall -ansi -o server server.c
+	gcc -Wall -ansi -o server server.c -lpthread
 
 client: client.c
-	gcc -Wall -ansi -o client client.c
+	gcc -Wall -ansi -o client client.c -lpthread
 
 
