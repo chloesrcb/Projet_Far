@@ -7,6 +7,7 @@
 #include<netinet/in.h>
 #include<arpa/inet.h>
 #include<netdb.h>
+#include <pthread.h>
 
 int rcvTCP(int sock,char *msg,int option){
 	/*msg vu ici comme une suite d'octets, un tab d'octets*/
