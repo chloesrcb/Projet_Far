@@ -64,11 +64,26 @@ int sendTCP(int sock,char *msg, int sizeoctets,int option){
 
 
 void *envoiThread(void *param){
-	char msg[200];
+	char msg[200],pseudo[50];
 	int res;
 	int socketServer=*(int *)param;
+	printf("Entrez votre pseudo avant de pouvoir communiquer...\n");
+	fgets(pseudo,50,stdin);
+
+	res=sendTCP(socketServer,pseudo,strlen(pseudo)+1,0);
+
+
+	if(res==-1){/*Erreur lors de la communication, on l'arrete*/
+		perror("Erreur lors de l'envoi");
+		close(socketServer);
+		exit(0);
+	}
+	else if(res==0){/*Le serveur est fermé on arrete la communication*/
+		printf("Socket fermée");
+		close(socketServer);
+		exit(0);
+	}
 	while(1){
-		printf(">");
 		/*On recupere le message de 200 caracteres max*/
 		fgets(msg,200,stdin);
 
@@ -99,7 +114,6 @@ int main(int argc, char const*argv[]){
 		printf("Il faut 2 arguments : IP + numéro de port\n");
 		return 0;
 	}
-
 
 	/* Initialisation de la socket*/
 	int dS=socket(PF_INET,SOCK_STREAM,0);
@@ -134,7 +148,6 @@ int main(int argc, char const*argv[]){
 		}
 
 		printf("%s",msg);
-		printf(">");
 		fflush(stdout);
 
 		if(strcmp(msg,"fin\n")==0){

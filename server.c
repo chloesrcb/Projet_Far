@@ -10,6 +10,7 @@
 #include <pthread.h>
 
 typedef struct structThread{
+	char pseudo[50];
 	int clientReception;
 	int clientEmission;
 }StructThread;
@@ -65,10 +66,37 @@ int sendTCP(int sock,char *msg, int sizeoctets,int option){
 
 void *fonctionthread(void *param){
 	StructThread *clients=(StructThread*)param;
-	char msg[200];
+	char pseudo[50];
+	char msgRecv[200];
+	char msgSnd[250];
 	int res;
+
+
+	res=rcvTCP(clients->clientReception,pseudo,0);	
+	if(res==-1){/*Erreur lors de la communication, on l'arrete*/
+		perror("Erreur lors de la reception\n");
+		close(clients->clientReception);
+		close(clients->clientEmission);
+		pthread_exit(NULL);
+	}
+	else if(res==0){/*Le client est fermé on arrete la communication*/
+		printf("Socket fermée\n");
+		close(clients->clientReception);
+		close(clients->clientEmission);
+		pthread_exit(NULL);
+	}
+	else if(res<strlen(pseudo)+1){
+			printf("Message non reçu entièrement\n");
+	}
+	else if(res==strlen(pseudo)+1){
+			printf("Message reçu en entier\n");
+	}
+	pseudo[strlen(pseudo)-1]='\0';
+	printf("pseudo : %s\n",pseudo);
+	sprintf(clients->pseudo,"%s",pseudo);
+
 	while(1){
-		res=rcvTCP(clients->clientReception,msg,0);	
+		res=rcvTCP(clients->clientReception,msgRecv,0);	
 		if(res==-1){/*Erreur lors de la communication, on l'arrete*/
 			perror("Erreur lors de la reception\n");
 			close(clients->clientReception);
@@ -81,17 +109,36 @@ void *fonctionthread(void *param){
 			close(clients->clientEmission);
 			pthread_exit(NULL);
 		}
-		else if(res<strlen(msg)+1){
+		else if(res<strlen(msgRecv)+1){
 				printf("Message non reçu entièrement\n");
 		}
-		else if(res==strlen(msg)+1){
+		else if(res==strlen(msgRecv)+1){
 				printf("Message reçu en entier\n");
 		}
+		msgRecv[strlen(msgRecv)]='\0';
+		printf("message : %s\n",msgRecv);
+		if(strcmp(msgRecv,"fin\n")==0){
+			res=sendTCP(clients->clientEmission,msgRecv,strlen(msgRecv)+1,0);
+			if(res==-1){/*Erreur lors de la communication, on l'arrete*/
+				perror("Erreur lors de la reception\n");
+				close(clients->clientReception);
+				close(clients->clientEmission);
+				pthread_exit(NULL);
+			}
+			else if(res==0){/*Le client est fermé on arrete la communication*/
+				printf("Socket fermée\n");
+				close(clients->clientReception);
+				close(clients->clientEmission);
+				pthread_exit(NULL);
+			}
 
-		printf("message : %s\n",msg);
+			break;
+		}
 
+
+		sprintf(msgSnd,"%s>%s",clients->pseudo,msgRecv);
 		/*On le transmet au client 2*/
-		res=sendTCP(clients->clientEmission,msg,strlen(msg)+1,0);
+		res=sendTCP(clients->clientEmission,msgSnd,strlen(msgSnd)+1,0);
 		if(res==-1){/*Erreur lors de la communication, on l'arrete*/
 			perror("Erreur lors de la reception\n");
 			close(clients->clientReception);
@@ -106,9 +153,6 @@ void *fonctionthread(void *param){
 		}
 
 
-		if(strcmp(msg,"fin\n")==0){
-			break;
-		}
 	}
 	pthread_exit(NULL);
 }
