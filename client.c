@@ -311,7 +311,7 @@ void *envoiThread(void *param){
 	char msg[200],pseudo[50];
 	int res;
 	int socketServer=*(int *)param;
-	printf("Entrez votre pseudo avant de pouvoir communiquer...\n");
+	
 	fgets(pseudo,50,stdin);
 
 	res=sendTCP(socketServer,pseudo,strlen(pseudo)+1,0);
