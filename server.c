@@ -15,8 +15,9 @@ typedef struct Salon{
 	char description[250];
 	int nbSalon;
 	int nbPlace;
-	int clients[2];
-	int clientsFile[2];
+	int *clients;
+	int *clientsFile;
+	pthread_mutex_t mutex;
 }Salon;
 
 typedef struct structThread{
@@ -116,6 +117,37 @@ int sendTCP(int sock,char *msg, int sizeoctets,int option){
 }
 
 
+int gestionErreur(int socket, int res){
+	if(res==-1){/*Erreur lors de la communication, on l'arrete*/
+		perror("Erreur de communication");
+		close(socket);
+		return 1;
+	}
+	else if(res==0){/*Le serveur est fermé on arrete la communication*/
+		printf("Socket fermée\n");
+		close(socket);
+		return 1;
+	}
+	return 0;
+}
+
+void libererClient(int socket,int numSalon,Salon *salons,int isFile){
+	printf("Avant\n");
+	pthread_mutex_lock(&salons[numSalon].mutex);
+	for(int i=0;i<salons[numSalon].nbPlace;i++){
+		printf("%d %d\n",salons[numSalon].clients[i],socket);
+		if(isFile==0 && salons[numSalon].clients[i]==socket){
+			salons[numSalon].clients[i]=-1;
+			//return;
+		}
+		else if(salons[numSalon].clientsFile[i]==socket){
+			salons[numSalon].clientsFile[i]=-1;
+			//return;
+		}
+	}
+	pthread_mutex_unlock(&salons[numSalon].mutex);
+}
+
 void *fonctionthread(void *param){
 	StructThread *clients=(StructThread*)param;
 	char pseudo[50];
@@ -127,29 +159,19 @@ void *fonctionthread(void *param){
 	sprintf(msgSnd,"Entrez votre pseudo avant de pouvoir communiquer...\n");
 	res=sendTCP(clients->client,msgSnd,strlen(msgSnd)+1,0);
 
-	if(res==-1){/*Erreur lors de la communication, on l'arrete*/
-		perror("Erreur lors de l'envoi");
-		close(clients->client);
-		pthread_exit(NULL);
-	}
-	else if(res==0){/*Le serveur est fermé on arrete la communication*/
-		printf("Socket fermée");
-		close(clients->client);
+	if(gestionErreur(clients->client,res)){
+		libererClient(clients->client,clients->numSalon,clients->salons,0);
 		pthread_exit(NULL);
 	}
 
 	res=rcvTCP(clients->client,pseudo,0);	
-	if(res==-1){/*Erreur lors de la communication, on l'arrete*/
-		perror("Erreur lors de la reception\n");
-		close(clients->client);
+	
+	if(gestionErreur(clients->client,res)){
+		libererClient(clients->client,clients->numSalon,clients->salons,0);
 		pthread_exit(NULL);
 	}
-	else if(res==0){/*Le client est fermé on arrete la communication*/
-		printf("Socket fermée\n");
-		close(clients->client);
-		pthread_exit(NULL);
-	}
-	else if(res<strlen(pseudo)+1){
+
+	if(res<strlen(pseudo)+1){
 			printf("Message non reçu entièrement\n");
 	}
 	else if(res==strlen(pseudo)+1){
@@ -161,36 +183,29 @@ void *fonctionthread(void *param){
 
 	while(1){
 		res=rcvTCP(clients->client,msgRecv,0);	
-		if(res==-1){/*Erreur lors de la communication, on l'arrete*/
-			perror("Erreur lors de la reception test\n");
-			close(clients->client);
+		
+		if(gestionErreur(clients->client,res)){
+		libererClient(clients->client,clients->numSalon,clients->salons,0);
 			pthread_exit(NULL);
 		}
-		else if(res==0){/*Le client est fermé on arrete la communication*/
-			printf("Socket fermée\n");
-			close(clients->client);
-			pthread_exit(NULL);
-		}
-		else if(res<strlen(msgRecv)+1){
+
+		if(res<strlen(msgRecv)+1){
 				printf("Message non reçu entièrement\n");
 		}
 		else if(res==strlen(msgRecv)+1){
 				printf("Message reçu en entier\n");
 		}
+
 		msgRecv[strlen(msgRecv)]='\0';
 		printf("message : %s\n",msgRecv);
 		if(strcmp(msgRecv,"fin\n")==0){
-			for(int i=0;i<2;i++){
+			sprintf(msgSnd,"%s a quitté le salon\n",clients->pseudo);
+
+			for(int i=0;i<clients->salons[clients->numSalon].nbPlace;i++){
 				if(clients->salons[clients->numSalon].clients[i]!=clients->client && clients->salons[clients->numSalon].clients[i]!=-1){
-					res=sendTCP(clients->salons[clients->numSalon].clients[i],msgRecv,strlen(msgRecv)+1,0);
-					if(res==-1){/*Erreur lors de la communication, on l'arrete*/
-						perror("Erreur lors de l'envoi\n");
-						close(clients->client);
-						pthread_exit(NULL);
-					}
-					else if(res==0){/*Le client est fermé on arrete la communication*/
-						printf("Socket fermée\n");
-						close(clients->client);
+					res=sendTCP(clients->salons[clients->numSalon].clients[i],msgSnd,strlen(msgSnd)+1,0);
+					if(gestionErreur(clients->client,res)){
+						libererClient(clients->client,clients->numSalon,clients->salons,0);
 						pthread_exit(NULL);
 					}
 				}
@@ -204,19 +219,11 @@ void *fonctionthread(void *param){
 		sprintf(msgSnd,"%s>%s",clients->pseudo,msgRecv);
 		printf("transmission au client: %d \n",clients->salons[clients->numSalon].clients[0]);
 		/*On le transmet au client 2*/
-		for(int i=0;i<2;i++){
+		for(int i=0;i<clients->salons[clients->numSalon].nbPlace;i++){
 			if(clients->salons[clients->numSalon].clients[i]!=clients->client && clients->salons[clients->numSalon].clients[i]!=-1){
 				res=sendTCP(clients->salons[clients->numSalon].clients[i],msgSnd,strlen(msgSnd)+1,0);
-				if(res==-1){/*Erreur lors de la communication, on l'arrete*/
-					char error[250];
-					sprintf(error,"Erreur lors de la reception test %d %d %d\n",i,clients->numSalon,clients->salons[clients->numSalon].clients[i]);
-					perror(error);
-					close(clients->client);
-					pthread_exit(NULL);
-				}
-				else if(res==0){/*Le client est fermé on arrete la communication*/
-					printf("Socket fermée\n");
-					close(clients->client);
+				if(gestionErreur(clients->client,res)){
+					libererClient(clients->client,clients->numSalon,clients->salons,0);
 					pthread_exit(NULL);
 				}
 			}
@@ -224,6 +231,8 @@ void *fonctionthread(void *param){
 
 
 	}
+
+	libererClient(clients->client,clients->numSalon,clients->salons,0);
 	pthread_exit(NULL);
 }
 
@@ -234,31 +243,18 @@ void *fonctionthreadFile(void *param){
 
 	while(1){
 		res=rcvTCP(clients->client,titre,0);
-		if(res==-1){/*Erreur lors de la communication, on l'arrete*/
-			perror("Erreur lors de la reception\n");
-			close(clients->client);
-			pthread_exit(NULL);
-		}
-		else if(res==0){/*Le serveur est fermé on arrete la communication*/
-			printf("Socket fermée\n");
-			close(clients->client);
+		if(gestionErreur(clients->client,res)){
+			libererClient(clients->client,clients->numSalon,clients->salons,1);
 			pthread_exit(NULL);
 		}
 		printf("Filename: %s\n",titre);
 
 		
-		
-		for(int i=0;i<2;i++){
+		for(int i=0;i<clients->salons[clients->numSalon].nbPlace;i++){
 			if(clients->salons[clients->numSalon].clientsFile[i]!=clients->client){
 				res=sendTCP(clients->salons[clients->numSalon].clientsFile[i],titre,strlen(titre)+1,0);
-				if(res==-1){/*Erreur lors de la communication, on l'arrete*/
-					perror("Erreur lors de la reception\n");
-					close(clients->client);
-					pthread_exit(NULL);
-				}
-				else if(res==0){/*Le client est fermé on arrete la communication*/
-					printf("Socket fermée\n");
-					close(clients->client);
+				if(gestionErreur(clients->client,res)){
+					libererClient(clients->client,clients->numSalon,clients->salons,1);
 					pthread_exit(NULL);
 				}
 			}
@@ -269,69 +265,47 @@ void *fonctionthreadFile(void *param){
 		res=rcvSize(clients->client,&nbOctetFile,0);
 		printf("File size=%ld\n",nbOctetFile);
 
-		if(res==-1){/*Erreur lors de la communication, on l'arrete*/
-			perror("Erreur lors de la reception\n");
-			close(clients->client);
+		if(gestionErreur(clients->client,res)){
+			libererClient(clients->client,clients->numSalon,clients->salons,1);	
 			pthread_exit(NULL);
 		}
-		else if(res==0){/*Le serveur est fermé on arrete la communication*/
-			printf("Socket fermée\n");
-			close(clients->client);
-			pthread_exit(NULL);
-		}
-
-		for(int i=0;i<2;i++){
+		
+		for(int i=0;i<clients->salons[clients->numSalon].nbPlace;i++){
 			if(clients->salons[clients->numSalon].clientsFile[i]!=clients->client){
 				res=sendSize(clients->salons[clients->numSalon].clientsFile[i],nbOctetFile,0);
-				if(res==-1){/*Erreur lors de la communication, on l'arrete*/
-					perror("Erreur lors de la reception\n");
-					close(clients->client);
-					pthread_exit(NULL);
-				}
-				else if(res==0){/*Le client est fermé on arrete la communication*/
-					printf("Socket fermée\n");
-					close(clients->client);
+				if(gestionErreur(clients->client,res)){
+					libererClient(clients->client,clients->numSalon,clients->salons,1);
 					pthread_exit(NULL);
 				}
 			}
 		}
-
+		
 		int nbRecus=0;
 		while(nbRecus<nbOctetFile){
 			res=rcvTCP(clients->client,buffer,0);
-			if(res==-1){/*Erreur lors de la communication, on l'arrete*/
-				perror("Erreur lors de la reception\n");
-				close(clients->client);
-				pthread_exit(NULL);
-			}
-			else if(res==0){/*Le serveur est fermé on arrete la communication*/
-				printf("Socket fermée\n");
-				close(clients->client);
+			if(gestionErreur(clients->client,res)){
+				libererClient(clients->client,clients->numSalon,clients->salons,1);
 				pthread_exit(NULL);
 			}
 			nbRecus+=res-1;
 
 
-			for(int i=0;i<2;i++){
+			for(int i=0;i<clients->salons[clients->numSalon].nbPlace;i++){
 				if(clients->salons[clients->numSalon].clientsFile[i]!=clients->client){
 					res=sendTCP(clients->salons[clients->numSalon].clientsFile[i],buffer,strlen(buffer)+1,0);
-					if(res==-1){/*Erreur lors de la communication, on l'arrete*/
-						perror("Erreur lors de la reception\n");
-						close(clients->client);
-						pthread_exit(NULL);
-					}
-					else if(res==0){/*Le client est fermé on arrete la communication*/
-						printf("Socket fermée\n");
-						close(clients->client);
+					if(gestionErreur(clients->client,res)){
+						libererClient(clients->client,clients->numSalon,clients->salons,1);
 						pthread_exit(NULL);
 					}
 				}
 			}
 			
+			
 		
 		}
 		printf("Fichier envoyé\n");
 	}
+	libererClient(clients->client,clients->numSalon,clients->salons,1);
 	pthread_exit(NULL);
 }
 
@@ -352,14 +326,7 @@ void *fonctionthreadChoixSalon(void *param){
 	char msg[250];
 	sprintf(msg,"Veuillez choisir un numero de salon en entrant son numero, obtenez la description d'un salon en envoyant '-N'\n");
 	res=sendTCP(sClient,msg,strlen(msg)+1,0);
-	if(res==-1){/*Erreur lors de la communication, on l'arrete*/
-		perror("Erreur lors de la reception\n");
-		close(sClient);
-		pthread_exit(NULL);
-	}
-	else if(res==0){/*Le client est fermé on arrete la communication*/
-		printf("Socket fermée\n");
-		close(sClient);
+	if(gestionErreur(sClient,res)){
 		pthread_exit(NULL);
 	}
 
@@ -367,46 +334,29 @@ void *fonctionthreadChoixSalon(void *param){
 	int numSalon;
 	while(selectionUnfinished){
 		res=rcvTCP(sClient,msg,0);
-		if(res==-1){/*Erreur lors de la communication, on l'arrete*/
-			perror("Erreur lors de la reception\n");
-			close(sClient);
+		if(gestionErreur(sClient,res)){
 			pthread_exit(NULL);
 		}
-		else if(res==0){/*Le client est fermé on arrete la communication*/
-			printf("Socket fermée\n");
-			close(sClient);
-			pthread_exit(NULL);
-		}
+
 		numSalon=atoi(msg);
 		if(numSalon<0 && numSalon*(-1)<parame->nbSalon){
 			sprintf(msg,"%s",parame->salons[numSalon*(-1)].description);
 			res=sendTCP(sClient,msg,strlen(msg)+1,0);
-			if(res==-1){/*Erreur lors de la communication, on l'arrete*/
-				perror("Erreur lors de la reception\n");
-				close(sClient);
-				pthread_exit(NULL);
-			}
-			else if(res==0){/*Le client est fermé on arrete la communication*/
-				printf("Socket fermée\n");
-				close(sClient);
+			if(gestionErreur(sClient,res)){
 				pthread_exit(NULL);
 			}
 		}
 		else if(numSalon<parame->nbSalon){
+			pthread_mutex_lock(&parame->salons[numSalon].mutex);
 			int numPlace=placeDispoSalon(parame->salons[numSalon]);
 			if(numPlace==-1){
-				sprintf(msg,"Il n'y a plus de place dans ce salon, veuillez en selectionner un autre.");
+				sprintf(msg,"Il n'y a plus de place dans ce salon, veuillez en selectionner un autre.\n");
 				res=sendTCP(sClient,msg,strlen(msg)+1,0);
-				if(res==-1){/*Erreur lors de la communication, on l'arrete*/
-					perror("Erreur lors de la reception\n");
-					close(sClient);
+				if(gestionErreur(sClient,res)){
 					pthread_exit(NULL);
 				}
-				else if(res==0){/*Le client est fermé on arrete la communication*/
-					printf("Socket fermée\n");
-					close(sClient);
-					pthread_exit(NULL);
-				}
+
+				pthread_mutex_unlock(&parame->salons[numSalon].mutex);
 				continue;
 			}
 			parame->salons[numSalon].clients[numPlace]=sClient;
@@ -422,6 +372,8 @@ void *fonctionthreadChoixSalon(void *param){
 			structFile->numSalon=numSalon;
 			structFile->salons=parame->salons;
 
+			pthread_mutex_unlock(&parame->salons[numSalon].mutex);
+
 			pthread_create(&t,NULL,fonctionthread,struct1);
 			pthread_create(&tf,NULL,fonctionthreadFile,structFile);
 			selectionUnfinished=0;
@@ -430,20 +382,12 @@ void *fonctionthreadChoixSalon(void *param){
 		else{
 			sprintf(msg,"Numero de salon trop haut, il y a %d salons.",parame->nbSalon);
 			res=sendTCP(sClient,msg,strlen(msg)+1,0);
-			if(res==-1){/*Erreur lors de la communication, on l'arrete*/
-				perror("Erreur lors de la reception\n");
-				close(sClient);
-				pthread_exit(NULL);
-			}
-			else if(res==0){/*Le client est fermé on arrete la communication*/
-				printf("Socket fermée\n");
-				close(sClient);
+			if(gestionErreur(sClient,res)){
 				pthread_exit(NULL);
 			}
 		}
 		
 	}
-
 	pthread_exit(NULL);
 }
 
@@ -463,13 +407,21 @@ int main(int argc, char *argv[]){
 	listen(dS,20);
 
 	int N=10;
+	int M=5;
+	
 	Salon *salons=malloc(sizeof(Salon)*N);
 	for(int i=0;i<N;i++){
 		sprintf(salons[i].description,"salon n%d",i);
 		salons[i].nbSalon=i;
-		salons[i].nbPlace=2;
-		salons[i].clients[0]=-1;salons[i].clients[1]=-1;
-		salons[i].clientsFile[0]=-1;salons[i].clientsFile[1]=-1;
+		pthread_mutex_init(&(salons[i].mutex),NULL);
+		
+		salons[i].nbPlace=M;
+		salons[i].clients=malloc(sizeof(int)*M);
+		salons[i].clientsFile=malloc(sizeof(int)*M);
+		for(int j=0;j<M;j++){
+			salons[i].clients[j]=-1;
+			salons[i].clientsFile[j]=-1;;
+		}
 	}
 
 
